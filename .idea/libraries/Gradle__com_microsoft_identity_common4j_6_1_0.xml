@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: com.microsoft.identity:common4j:6.1.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.microsoft.identity/common4j/6.1.0/9f5dbdbb4e96ec2fd6521dd24127009d2662e0e0/common4j-6.1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.microsoft.identity/common4j/6.1.0/8e678962cb90a18b49cc4ec6987294a677e58d20/common4j-6.1.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.microsoft.identity/common4j/6.1.0/9e9a7196cfb57bd8b922e145cf05c42d609778d/common4j-6.1.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

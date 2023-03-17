@@ -1,0 +1,16 @@
+{
+  "client_id" : "e7366dfa-dc8b-468a-97d9-7270ee08a349",
+  "authorization_user_agent" : "DEFAULT",
+  "redirect_uri" : "msauth://com.example.campusconnectapp/8qBoATJB6ptq%2BnIkAL5T9RSY1O0%3D",
+  "broker_redirect_uri_registered" : true,
+  "account_mode" : "SINGLE",
+  "authorities" : [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADMultipleOrgs",
+        "tenant_id": "11a6c59d-5d73-4a47-b23e-f5fcf9bf009b"
+      }
+    }
+  ]
+}

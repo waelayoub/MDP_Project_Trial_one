@@ -11,32 +11,37 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CampusConnectApp"
         tools:targetApi="31">
+        <activity
+            android:name=".Home_Activity"
+            android:exported="false">
 
+        </activity>
         <activity
             android:name=".SplashScreen"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity> <!-- Intent filter to capture System Browser or Authenticator calling back to our app after sign-in -->
 
-        <!--Intent filter to capture System Browser or Authenticator calling back to our app after sign-in-->
+
         <activity
             android:name="com.microsoft.identity.client.BrowserTabActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:host="com.example.campusconnectapp"
                     android:path="/8qBoATJB6ptq+nIkAL5T9RSY1O0="
                     android:scheme="msauth" />
             </intent-filter>
         </activity>
-
-
     </application>
 
 </manifest>

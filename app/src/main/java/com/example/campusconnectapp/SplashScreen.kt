@@ -1,21 +1,18 @@
 package com.example.campusconnectapp
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-
+import androidx.appcompat.app.AppCompatActivity
 import com.example.campusconnectapp.databinding.ActivitySplashScreenBinding
-
 import com.microsoft.graph.authentication.IAuthenticationProvider
 import com.microsoft.graph.requests.GraphServiceClient
 import com.microsoft.identity.client.*
 import com.microsoft.identity.client.exception.MsalException
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-
 import java.net.URL
 import java.util.concurrent.CompletableFuture
 
@@ -152,8 +149,18 @@ class SplashScreen : AppCompatActivity() {
         GlobalScope.launch(Dispatchers.IO){
             val result = graphClient.me().buildRequest().get()
 //            Log.d(TAG, "Maybe here")
-            println(result?.displayName+"  N  "+ result?.birthday+"  BD   ")
-            println(result?.mobilePhone+"  Ph  "+ result?.mail+"  Mail   ")
+//            println(result?.displayName+"  N  ")
+//            println(result?.mobilePhone+"  Ph  "+ result?.mail+"  Mail   ")
+
+            val intent = Intent(applicationContext, Home_Activity::class.java)
+            intent.putExtra("name", result?.displayName)
+            intent.putExtra("id", result?.id.toString())
+            intent.putExtra("mail", result?.mail)
+            startActivity(intent)
+            finish()
+
+
+
         }
 
     }

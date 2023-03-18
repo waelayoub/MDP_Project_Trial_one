@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-  
+
+    <item
+        android:id="@+id/item_events"
+        android:title="Events"
+        android:icon="@drawable/icon_events_foreground"/>
+
+    <item
+        android:id="@+id/item_interest"
+        android:title="Interest"
+        android:icon="@drawable/icon_interest_foreground"/>
+
+    <item
+        android:id="@+id/item_settings"
+        android:title="Settings"
+        android:icon="@drawable/icon_settings_foreground"/>
+
 </menu>

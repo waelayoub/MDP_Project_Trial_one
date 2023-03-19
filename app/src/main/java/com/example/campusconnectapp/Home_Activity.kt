@@ -48,6 +48,7 @@ class Home_Activity : AppCompatActivity() {
 
 
 
+
     }
 
     private fun setCurrentFragment(fragment: Fragment)=

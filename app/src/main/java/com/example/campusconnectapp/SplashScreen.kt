@@ -41,20 +41,7 @@ class SplashScreen : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = Firebase.auth
-
-
-        PublicClientApplication.createSingleAccountPublicClientApplication(this.applicationContext,
-                R.raw.auth_config_single_account,
-                object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
-                    override fun onCreated(application: ISingleAccountPublicClientApplication?) {
-                        mSingleAccountApp = application
-                        loadAccount()
-                    }
-
-                    override fun onError(exception: MsalException?) {
-                        Log.d(TAG, exception.toString())
-                    }
-                })
+        creatingInstanceMicrosoft(true)
 
         binding.EnterButton.setOnClickListener {
             mSingleAccountApp?.signIn(this, null, SCOPES, getAuthInteractiveCallback())
@@ -64,6 +51,23 @@ class SplashScreen : AppCompatActivity() {
         binding.EnterButton.visibility=View.VISIBLE
 
 
+    }
+
+    private fun creatingInstanceMicrosoft(loader: Boolean){
+        PublicClientApplication.createSingleAccountPublicClientApplication(this.applicationContext,
+            R.raw.auth_config_single_account,
+            object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
+                override fun onCreated(application: ISingleAccountPublicClientApplication?) {
+                    mSingleAccountApp = application
+                    if (loader) {
+                        loadAccount()
+                    }
+                }
+
+                override fun onError(exception: MsalException?) {
+                    Log.d(TAG, exception.toString())
+                }
+            })
     }
 
 
@@ -108,31 +112,50 @@ class SplashScreen : AppCompatActivity() {
 
     // this will call authSilent
     private fun loadAccount(){
-        if(mSingleAccountApp!=null){
-            mSingleAccountApp?.getCurrentAccountAsync(
-                object:ISingleAccountPublicClientApplication.CurrentAccountCallback{
-                    override fun onAccountLoaded(activeAccount: IAccount?) {
-                        if(activeAccount!=null){
-//                            println(activeAccount.authority)
-                            mSingleAccountApp!!.acquireTokenSilentAsync(
-                                SCOPES, "https://login.microsoftonline.com/11a6c59d-5d73-4a47-b23e-f5fcf9bf009b", getAuthSilentCallback()
-                            )
+        if(mSingleAccountApp!=null) {
+
+            if (auth.currentUser == null) {
+                GlobalScope.launch(Dispatchers.IO) {
+                    if (mSingleAccountApp!!.currentAccount != null) {
+                        try {
+                            mSingleAccountApp?.signOut()
+                            creatingInstanceMicrosoft(false)
+
+                        } catch (e: Exception) {
+                            println("Error in scope")
                         }
-
-//                        updateUI(activeAccount) // here to change if i loaded the account
-                    }
-                    override fun onAccountChanged(
-                        priorAccount: IAccount?,
-                        currentAccount: IAccount?
-                    ) {
-                        Log.d(TAG,"Signed Out.")
-                    }
-                    override fun onError(exception: MsalException) {
-                        Log.d(TAG,exception.toString())
-
                     }
                 }
-            )
+            } else {
+                mSingleAccountApp?.getCurrentAccountAsync(
+                    object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
+                        override fun onAccountLoaded(activeAccount: IAccount?) {
+                            if (activeAccount != null) {
+//                            println(activeAccount.authority)
+                                mSingleAccountApp!!.acquireTokenSilentAsync(
+                                    SCOPES,
+                                    "https://login.microsoftonline.com/11a6c59d-5d73-4a47-b23e-f5fcf9bf009b",
+                                    getAuthSilentCallback()
+                                )
+                            }
+
+//                        updateUI(activeAccount) // here to change if i loaded the account
+                        }
+
+                        override fun onAccountChanged(
+                            priorAccount: IAccount?,
+                            currentAccount: IAccount?
+                        ) {
+                            Log.d(TAG, "Signed Out.")
+                        }
+
+                        override fun onError(exception: MsalException) {
+                            Log.d(TAG, exception.toString())
+
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -158,9 +181,18 @@ class SplashScreen : AppCompatActivity() {
             val result = graphClient.me().buildRequest().get() ?: return@launch
             if(result.mail==null || result.id==null || result.displayName==null){
                 return@launch
-            }
-            firebaseAuthUsage(result)
+            }else{
+                firebaseAuthUsage(result)
 
+                val intent = Intent(applicationContext, Home_Activity::class.java)
+                val user = auth.currentUser
+                println("Hello the user is "+ user?.displayName.toString())
+                intent.putExtra("name", result.displayName)
+                intent.putExtra("id", result.id.toString())
+                intent.putExtra("mail", result.mail)
+                finish()
+                startActivity(intent)
+            }
 
         }
 
@@ -186,13 +218,6 @@ class SplashScreen : AppCompatActivity() {
                             }
                         }
 
-                    val intent = Intent(applicationContext, Home_Activity::class.java)
-                    intent.putExtra("name", result.displayName)
-                    intent.putExtra("id", result.id.toString())
-                    intent.putExtra("mail", result.mail)
-                    finish()
-                    startActivity(intent)
-
                 } else {
 
                     auth.signInWithEmailAndPassword(result.mail!!, result.id.toString())
@@ -200,16 +225,6 @@ class SplashScreen : AppCompatActivity() {
                             if (task.isSuccessful) {
                                 // Sign in success, update UI with the signed-in user's information
                                 Log.d(TAG, "signInWithEmail:success")
-                                val user = auth.currentUser
-                                val intent = Intent(applicationContext, Home_Activity::class.java)
-
-                                println("Hello the user is "+ user?.displayName.toString())
-
-                                intent.putExtra("name", result.displayName)
-                                intent.putExtra("id", result.id.toString())
-                                intent.putExtra("mail", result.mail)
-                                finish()
-                                startActivity(intent)
                             } else {
                                 // If sign in fails, display a message to the user.
                                 Log.w(TAG, "signInWithEmail:failure", task.exception)

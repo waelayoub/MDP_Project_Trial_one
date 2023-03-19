@@ -27,25 +27,29 @@ import java.util.concurrent.CompletableFuture
 class SplashScreen : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashScreenBinding
-    private lateinit var auth: FirebaseAuth
 
     companion object{
+        private val auth: FirebaseAuth= Firebase.auth
+
         private val SCOPES = arrayOf("Files.Read.All")
         private var mSingleAccountApp: ISingleAccountPublicClientApplication? = null
         private val TAG:String = SplashScreen::class.java.simpleName //bala ta3me mn chila later
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         binding = ActivitySplashScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        auth = Firebase.auth
+
         creatingInstanceMicrosoft(true)
+
 
         binding.EnterButton.setOnClickListener {
             mSingleAccountApp?.signIn(this, null, SCOPES, getAuthInteractiveCallback())
         }
+
 
         binding.progressBar.visibility=View.INVISIBLE
         binding.EnterButton.visibility=View.VISIBLE
@@ -76,8 +80,7 @@ class SplashScreen : AppCompatActivity() {
     private fun getAuthInteractiveCallback() : AuthenticationCallback {
         return object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult?) {
-                Log.d(TAG, "Successfully authenticated")
-//                updateUI(authenticationResult!!.account) // here to change if i loaded the account
+                Log.d(TAG, "Successfully authenticated interactively")
                 if (authenticationResult!=null){
                     callGraphAPI(authenticationResult)
                 }
@@ -98,7 +101,7 @@ class SplashScreen : AppCompatActivity() {
     private fun getAuthSilentCallback(): SilentAuthenticationCallback {
         return object : SilentAuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult?) {
-                Log.d(TAG, "Successfully authenticated")
+                Log.d(TAG, "Successfully authenticated silently")
                 /* Successfully got a token, use it to call a protected resource - MSGraph */
                 callGraphAPI(authenticationResult!!)
             }
@@ -107,6 +110,37 @@ class SplashScreen : AppCompatActivity() {
                 Log.d(TAG, "Authentication failed Silently: " + exception.toString())
             }
         }
+    }
+
+    private fun loadingSavedAccount(){
+        mSingleAccountApp?.getCurrentAccountAsync(
+            object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
+                override fun onAccountLoaded(activeAccount: IAccount?) {
+                    if (activeAccount != null) {
+//                            println(activeAccount.authority)
+                        mSingleAccountApp!!.acquireTokenSilentAsync(
+                            SCOPES,
+                            "https://login.microsoftonline.com/11a6c59d-5d73-4a47-b23e-f5fcf9bf009b",
+                            getAuthSilentCallback()
+                        )
+                    }
+
+//                        updateUI(activeAccount) // here to change if i loaded the account yaane eza bade ghayir l ui
+                }
+
+                override fun onAccountChanged(
+                    priorAccount: IAccount?,
+                    currentAccount: IAccount?
+                ) {
+                    Log.d(TAG, "Signed Out.")
+                }
+
+                override fun onError(exception: MsalException) {
+                    Log.d(TAG, exception.toString())
+
+                }
+            }
+        )
     }
 
 
@@ -118,43 +152,19 @@ class SplashScreen : AppCompatActivity() {
                 GlobalScope.launch(Dispatchers.IO) {
                     if (mSingleAccountApp!!.currentAccount != null) {
                         try {
+                            println("I entered here in the signing out")
                             mSingleAccountApp?.signOut()
                             creatingInstanceMicrosoft(false)
 
                         } catch (e: Exception) {
-                            println("Error in scope")
+                            println("I entered here in the catch of the signing out")
+                            loadingSavedAccount()
                         }
                     }
                 }
             } else {
-                mSingleAccountApp?.getCurrentAccountAsync(
-                    object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
-                        override fun onAccountLoaded(activeAccount: IAccount?) {
-                            if (activeAccount != null) {
-//                            println(activeAccount.authority)
-                                mSingleAccountApp!!.acquireTokenSilentAsync(
-                                    SCOPES,
-                                    "https://login.microsoftonline.com/11a6c59d-5d73-4a47-b23e-f5fcf9bf009b",
-                                    getAuthSilentCallback()
-                                )
-                            }
-
-//                        updateUI(activeAccount) // here to change if i loaded the account
-                        }
-
-                        override fun onAccountChanged(
-                            priorAccount: IAccount?,
-                            currentAccount: IAccount?
-                        ) {
-                            Log.d(TAG, "Signed Out.")
-                        }
-
-                        override fun onError(exception: MsalException) {
-                            Log.d(TAG, exception.toString())
-
-                        }
-                    }
-                )
+                print("I am in the auth.currentUser != null")
+               loadingSavedAccount()
             }
         }
     }
@@ -180,18 +190,20 @@ class SplashScreen : AppCompatActivity() {
         GlobalScope.launch(Dispatchers.IO){
             val result = graphClient.me().buildRequest().get() ?: return@launch
             if(result.mail==null || result.id==null || result.displayName==null){
+                println("Somehow i entered here")
                 return@launch
             }else{
                 firebaseAuthUsage(result)
 
                 val intent = Intent(applicationContext, Home_Activity::class.java)
                 val user = auth.currentUser
+                println("The user : "+user.toString())
                 println("Hello the user is "+ user?.displayName.toString())
                 intent.putExtra("name", result.displayName)
                 intent.putExtra("id", result.id.toString())
                 intent.putExtra("mail", result.mail)
-                finish()
                 startActivity(intent)
+                finish()
             }
 
         }
@@ -199,9 +211,11 @@ class SplashScreen : AppCompatActivity() {
     }
 
     private fun firebaseAuthUsage(result:User){
+        println("Entered firebase auth")
         auth.createUserWithEmailAndPassword(result.mail!!, result.id.toString())
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
+                    println("Firebase creation Success")
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "createUserWithEmail:success")
 
@@ -217,22 +231,27 @@ class SplashScreen : AppCompatActivity() {
                                 Log.d(TAG, "User profile updated.")
                             }
                         }
+                    println("Creation of user successful (Firebase)")
+                }
+                else {
+                    println("Entered now the signing in")
+                }
+            }
 
+        auth.signInWithEmailAndPassword(result.mail!!, result.id.toString())
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    println("Logging of user successful (Firebase)")
+
+                    println("The name that should appear is : "+result.displayName)
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "signInWithEmail:success")
                 } else {
-
-                    auth.signInWithEmailAndPassword(result.mail!!, result.id.toString())
-                        .addOnCompleteListener(this) { task ->
-                            if (task.isSuccessful) {
-                                // Sign in success, update UI with the signed-in user's information
-                                Log.d(TAG, "signInWithEmail:success")
-                            } else {
-                                // If sign in fails, display a message to the user.
-                                Log.w(TAG, "signInWithEmail:failure", task.exception)
-                                Toast.makeText(baseContext, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show()
-                            }
-                        }
-
+                    println("Entered the worst case")
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInWithEmail:failure", task.exception)
+                    Toast.makeText(baseContext, "Authentication failed.",
+                        Toast.LENGTH_SHORT).show()
                 }
             }
     }

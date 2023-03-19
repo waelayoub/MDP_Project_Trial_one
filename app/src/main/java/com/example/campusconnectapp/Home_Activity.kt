@@ -11,17 +11,15 @@ import kotlinx.coroutines.launch
 
 class Home_Activity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
+    private val eventFragment = EventFragment()
+    private val interestFragment = InterestFragment()
+    private val settingsFragment = SettingsFragment()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         binding= ActivityHomeBinding.inflate(layoutInflater)
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-
-        val eventFragment = EventFragment()
-        val interestFragment = InterestFragment()
-        val settingsFragment = SettingsFragment()
-
         setCurrentFragment(eventFragment)
 
 

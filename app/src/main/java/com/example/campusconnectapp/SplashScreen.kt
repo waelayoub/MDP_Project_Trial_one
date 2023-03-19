@@ -4,9 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.campusconnectapp.databinding.ActivitySplashScreenBinding
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+
 import com.microsoft.graph.authentication.IAuthenticationProvider
+import com.microsoft.graph.models.User
 import com.microsoft.graph.requests.GraphServiceClient
 import com.microsoft.identity.client.*
 import com.microsoft.identity.client.exception.MsalException
@@ -20,6 +27,7 @@ import java.util.concurrent.CompletableFuture
 class SplashScreen : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashScreenBinding
+    private lateinit var auth: FirebaseAuth
 
     companion object{
         private val SCOPES = arrayOf("Files.Read.All")
@@ -31,6 +39,8 @@ class SplashScreen : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        auth = Firebase.auth
 
 
         PublicClientApplication.createSingleAccountPublicClientApplication(this.applicationContext,
@@ -50,11 +60,8 @@ class SplashScreen : AppCompatActivity() {
             mSingleAccountApp?.signIn(this, null, SCOPES, getAuthInteractiveCallback())
         }
 
-        GlobalScope.launch(Dispatchers.Main) {
-            Thread.sleep(3000)
-            binding.progressBar.visibility=View.INVISIBLE
-            binding.EnterButton.visibility=View.VISIBLE
-        }
+        binding.progressBar.visibility=View.INVISIBLE
+        binding.EnterButton.visibility=View.VISIBLE
 
 
     }
@@ -132,9 +139,8 @@ class SplashScreen : AppCompatActivity() {
 
     // this will return the information about the user from the token
     private fun callGraphAPI(authenticationResult:IAuthenticationResult){
+
         val accessToken:String = authenticationResult.accessToken
-//        println("Access Token : "+ accessToken)
-//        Log.d(TAG, "Problem here")
         val graphClient = GraphServiceClient.builder()
             .authenticationProvider(object : IAuthenticationProvider {
                 override fun getAuthorizationTokenAsync(requestUrl: URL): CompletableFuture<String> {
@@ -144,26 +150,76 @@ class SplashScreen : AppCompatActivity() {
                     return accessTokenFuture
                 }
             }).buildClient()
-//        Log.d(TAG, "Finally here")
+
+
+
 
         GlobalScope.launch(Dispatchers.IO){
-            val result = graphClient.me().buildRequest().get()
-//            Log.d(TAG, "Maybe here")
-//            println(result?.displayName+"  N  ")
-//            println(result?.mobilePhone+"  Ph  "+ result?.mail+"  Mail   ")
-
-            val intent = Intent(applicationContext, Home_Activity::class.java)
-            intent.putExtra("name", result?.displayName)
-            intent.putExtra("id", result?.id.toString())
-            intent.putExtra("mail", result?.mail)
-            startActivity(intent)
-            finish()
-
+            val result = graphClient.me().buildRequest().get() ?: return@launch
+            if(result.mail==null || result.id==null || result.displayName==null){
+                return@launch
+            }
+            firebaseAuthUsage(result)
 
 
         }
 
     }
 
+    private fun firebaseAuthUsage(result:User){
+        auth.createUserWithEmailAndPassword(result.mail!!, result.id.toString())
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "createUserWithEmail:success")
+
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(result.displayName)
+                        .build()
+
+                    val user = auth.currentUser
+
+                    user?.updateProfile(profileUpdates)
+                        ?.addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Log.d(TAG, "User profile updated.")
+                            }
+                        }
+
+                    val intent = Intent(applicationContext, Home_Activity::class.java)
+                    intent.putExtra("name", result.displayName)
+                    intent.putExtra("id", result.id.toString())
+                    intent.putExtra("mail", result.mail)
+                    finish()
+                    startActivity(intent)
+
+                } else {
+
+                    auth.signInWithEmailAndPassword(result.mail!!, result.id.toString())
+                        .addOnCompleteListener(this) { task ->
+                            if (task.isSuccessful) {
+                                // Sign in success, update UI with the signed-in user's information
+                                Log.d(TAG, "signInWithEmail:success")
+                                val user = auth.currentUser
+                                val intent = Intent(applicationContext, Home_Activity::class.java)
+
+                                println("Hello the user is "+ user?.displayName.toString())
+
+                                intent.putExtra("name", result.displayName)
+                                intent.putExtra("id", result.id.toString())
+                                intent.putExtra("mail", result.mail)
+                                finish()
+                                startActivity(intent)
+                            } else {
+                                // If sign in fails, display a message to the user.
+                                Log.w(TAG, "signInWithEmail:failure", task.exception)
+                                Toast.makeText(baseContext, "Authentication failed.",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+
+                }
+            }
+    }
 
 }

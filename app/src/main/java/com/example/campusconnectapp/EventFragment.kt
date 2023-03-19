@@ -10,6 +10,7 @@ import com.example.campusconnectapp.databinding.FragmentEventBinding
 class EventFragment : Fragment() {
 
     private lateinit var binding: FragmentEventBinding
+    private var textViewText: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -17,12 +18,17 @@ class EventFragment : Fragment() {
     ): View? {
         // Inflate the layout for this fragment
         binding=FragmentEventBinding.inflate(inflater, container, false)
+        if (textViewText != null) {
+            binding.tvEvent.setText(textViewText)
+        }
         return binding.root
     }
 
     fun setTextViewText(text: String) {
         binding.tvEvent.setText(text)
+        textViewText=text
     }
+
 
 
 }
